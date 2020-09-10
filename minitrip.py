@@ -1,6 +1,7 @@
 """ Minitrip, a filesystem integrity check tool """
 import click
 import plyvel
+import sys
 from os import environ
 from time import time
 
@@ -37,14 +38,22 @@ def main(verbose, database, mode, timestamp, label, path):
 
             if mode == 'a':
                 db.put(hash(item), label_db)
+                if verbose:
+                    sys.stderr.write('New entry: "' + str(item) + '" with label "' + label_db.decode("utf-8") + '"\n')
             elif mode == 'c' or mode == 'u':
-                hash_db = db.get(hash(item))
+                hash_value = db.get(hash(item))
                 
                 if mode == 'c':
-                    if timestamp is None or hash_db is not None and int(hash_db) < int(timestamp):
-                        print("File never seen before" if hash_db is None else "Malware found")
+                    if timestamp is None or hash_value is not None and int(hash_value) < int(timestamp):
+                        if hash_value is None:
+                            sys.stdout.write('File never seen before: "' + str(item) + '"\n')
+                        else:
+                            sys.stderr.write('Malware found: "' + str(item) + '"\n')
                 elif mode == 'u':
-                    db.put(hash(item), bytes(str(int(time())), "utf-8"))
+                    if hash_value is None:
+                        db.put(hash(item), bytes(str(int(time())), "utf-8"))
+                    elif verbose and hash_value.decode("utf-8").isdigit():
+                        sys.stderr.write('Found file "' + str(item) + '" with value "' + hash_value.decode("utf-8") + '"\n')
 
     db.close()
 

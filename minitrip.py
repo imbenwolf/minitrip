@@ -15,8 +15,9 @@ DEFAULT_DB_PATH = "$HOME/.minitripdb"
 @click.option('-d', '--database', default=DEFAULT_DB_PATH, show_default=True, help="database path")
 @click.option('-a', '--add', 'mode', flag_value='a', is_flag=True, help="Run in add mode (add malware samples)")
 @click.option('-u', '--update', 'mode', flag_value='u', is_flag=True, help="Run in update mode (record timestamps for new files)")
+@click.option('-t', '--timestamp', type=int, help="For check mode, ignore all hashes whose timestamp is newer than the desired time")
 @click.option('-l', '--label', help="For add mode, set an explicit label instead of the filename stem")
-def main(verbose, database, mode, label, path):
+def main(verbose, database, mode, timestamp, label, path):
     """ Tool to lookup known file hashes """
     mode = 'c' if mode is None else mode
 
@@ -40,7 +41,8 @@ def main(verbose, database, mode, label, path):
                 hash_db = db.get(hash(item))
                 
                 if mode == 'c':
-                    print("File never seen before" if hash_db is None else "Malware found")
+                    if timestamp is None or hash_db is not None and int(hash_db) < int(timestamp):
+                        print("File never seen before" if hash_db is None else "Malware found")
                 elif mode == 'u':
                     db.put(hash(item), bytes(str(int(time())), "utf-8"))
 

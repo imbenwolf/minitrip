@@ -11,21 +11,21 @@ from scan import walk_paths
 DEFAULT_DB_PATH = "$HOME/.minitripdb"
 
 
-def add(db, file_path, label, verbose):
-    db.put(hash(file_path), label)
-    if verbose:
-        sys.stderr.write(
-            'New entry: "' + str(file_path) + '" with label "' + label.decode("utf-8") + '"\n')
+def add(db, hash_value, file_path, label, verbose):
+    if hash_value is None:
+        db.put(hash(file_path), bytes(
+            file_path.stem if label is None else label, "utf-8"))
+        if verbose:
+            sys.stderr.write('New entry: "' + str(file_path) +
+                             '" with label "' + label.decode("utf-8") + '"\n')
 
 
 def check(timestamp, hash_value, file_path):
-    if timestamp is None or hash_value is not None and int(hash_value) < int(timestamp):
-        if hash_value is None:
-            sys.stdout.write(
-                'File never seen before: "' + str(file_path) + '"\n')
-        else:
-            sys.stderr.write(
-                'Malware found: "' + str(file_path) + '"\n')
+    if hash_value is None:
+        sys.stdout.write('File never seen before: "' +
+                         str(file_path) + '"\n')
+    elif timestamp is None or int(hash_value) < int(timestamp):
+        sys.stderr.write('Malware found: "' + str(file_path) + '"\n')
 
 
 def update(db, hash_value, file_path, verbose):
@@ -60,13 +60,10 @@ def main(verbose, database, mode, timestamp, label, path):
 
     for path in path:
         for file_path in walk_paths(path):
-            label_db = bytes(
-                file_path.stem if label is None else label, "utf-8")
             hash_value = db.get(hash(file_path))
 
             if mode == 'a':
-                if hash_value is None:
-                    add(db, file_path, label_db, verbose)
+                add(db, hash_value, file_path, label, verbose)
 
             elif mode == 'c':
                 check(timestamp, hash_value, file_path)

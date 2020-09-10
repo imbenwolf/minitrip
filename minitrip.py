@@ -1,36 +1,27 @@
 """ Minitrip, a filesystem integrity check tool """
+import click
 
-from pathlib import Path
-from hashlib import sha256
+from hash import hash
+from scan import walk_paths
 
+@click.command(context_settings=dict(help_option_names=['-h', '--help']))
+@click.argument('PATH', type=click.Path(exists=True), nargs=-1)
+@click.option('-v', '--verbose', is_flag=True)
+@click.option('-d', '--database', default="$HOME/.minitripdb", show_default=True, help="database path")
+@click.option('-a', '--add', 'mode', flag_value='u', is_flag=True, help="Run in add mode (add malware samples)", default='c')
+@click.option('-u', '--update', 'mode', flag_value='a', is_flag=True, help="Run in update mode (record timestamps for new files)", default='c')
+@click.option('-l', '--label', help="For add mode, set an explicit label instead of the filename stem")
+def main(verbose, database, mode, label, path):
+    """ Tool to lookup known file hashes """
+    path = set(path)
+    if len(path) == 0:
+        path.add(".")
 
-def walk_paths(path):
-    path = Path(path) if isinstance(path, str) else path
-    for item in path.iterdir():
-        if item.is_dir():
-            yield from walk_paths(item)
-        elif item.is_file():
-            yield item
-
-
-def hash(path):
-    hash = sha256()
-
-    with open(path,'rb') as file:
-        chunk = 0
-        while chunk != b'':
-            chunk = file.read(4096)
-            hash.update(chunk)
-
-    return hash.digest()
-
-
-def main():
-    """ The main function for the `minitrip` command """
-    for item in walk_paths("/home/wolf"):
-        print(item)
-        print(hash(item))
+    for path in path: 
+        for item in walk_paths(path):
+            print(item)
+            print(hash(item))
 
 
 if __name__ == "__main__":
-    main()
+    main() # pylint: disable=no-value-for-parameter

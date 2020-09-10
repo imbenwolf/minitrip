@@ -8,5 +8,5 @@ setup(
         entry_points = {
             'console_scripts': ['minitrip=minitrip:main']
         },
-		install_requires = [ 'plyvel' ]
+		install_requires = [ 'plyvel', 'click' ]
 )
